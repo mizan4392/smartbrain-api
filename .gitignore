@@ -11,6 +11,8 @@
 # production
 /build
 
+request.rest
+
 # misc
 .DS_Store
 .env.local
