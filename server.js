@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
+const cors = require('cors');
 
 const firebase = require("firebase");
 const { admin, db } = require("./util/db");
@@ -20,9 +21,37 @@ firebase.initializeApp(firebaseConfig);
 const app = express();
 app.use(morgan("dev"));
 app.use(bodyParser.json());
+app.use(cors());
 
 app.get("/", (req, res) => {
-  
+  let idToken;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Auth")
+  ) {
+    idToken = req.headers.authorization.split(" ")[1];
+  } else {
+    console.error("no Token found");
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+  //console.log(idToken)
+
+  admin.auth().verifyIdToken(idToken)
+  .then(decodedToken =>{
+    return db.doc(`user/${decodedToken.uid}`).get()
+  })
+  .then(doc =>{
+    if(!doc.exists){
+      res.status(400).json('login')
+    }else{
+      res.status(200).json({
+        name:doc.data().name,
+        email:doc.data().email,
+        entry:doc.data().entry
+      })
+    }
+  })
+  .catch(err => console.log(err))
 });
 
 app.post("/signin", (req, res) => {
@@ -37,11 +66,19 @@ app.post("/signin", (req, res) => {
       return data.user.getIdToken();
     })
     .then(token => {
-      res.status(200).json({
-        token: token
-      });
+      res.status(200).json({token});
     })
-    .catch(err => console.log(err.message));
+    .catch(err => {
+      console.log(err.code)
+      if(err.code === 'auth/user-not-found'){
+        res.json({error:'incorrect email'});  
+      }else if(err.code === 'auth/wrong-password'){
+        res.json({error:'incorrect Password'});  
+      }else{
+        res.json(err.code)
+      }
+      
+    });
 });
 
 app.post("/register", (req, res) => {
@@ -101,6 +138,7 @@ app.post("/updateEntry", (req, res) => {
     .catch(err => console.log(err))
 });
 
-app.listen(3000, () => {
-  console.log("app is running on port 3000");
+
+app.listen(3001, () => {
+  console.log("app is running on port 3001");
 });
