@@ -104,10 +104,9 @@ app.post("/register", (req, res) => {
         .then(() => res.status(201).json("user Created"))
         .catch(err => res.status(400).json(err.code));
     })
-    .catch(err => res.status(400).json(err.message));
+    .catch(err => res.status(400).json(err.code));
 });
 
-app.get("/profile/:id", (req, res) => {});
 
 app.post("/updateEntry", (req, res) => {
   let idToken;
@@ -132,8 +131,8 @@ app.post("/updateEntry", (req, res) => {
         return doc.ref.update({entry:doc.data().entry + 1})
       }
     })
-    .then(()=>{
-      res.json('entry update')
+    .then(response=>{
+      console.log(response)
     })
     .catch(err => console.log(err))
 });
